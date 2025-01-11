@@ -6,16 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib.auth import authenticate,login,logout
 from django.http import HttpResponse
-from .models import Room, Topic
+from .models import Room, Topic, Message
 from .forms import RoomForm
-
-
-#rooms= [
-#    {'id':1, 'name':'lets learn python'},
-#    {'id':2, 'name':'design with me'},
-#    {'id':3, 'name':'front end developers'}
-#]
-
 
 
 def loginPage(request):
@@ -66,15 +58,35 @@ def home(request):
                                 Q(description__contains= q))
     topics = Topic.objects.all()
     room_count = Room.objects.count()
-    context = {'rooms': rooms, 'topics': topics, 'room_count': room_count}
+    room_messages = Message.objects.all().filter(Q(room__topic__name__icontains= q) )
+    context = {'rooms': rooms, 'topics': topics, 'room_count': room_count,'room_messages' : room_messages}
     return render(request, 'base/home.html',context)
 
 
 def room(request,pk):
     room = Room.objects.get(id=pk)
-    context = {'room': room}
+    room_messages = room.message_set.all().order_by('-created')
+    participants = room.participants.all()
+
+    if request.method == "POST":
+        message = Message.objects.create(
+            user=request.user,
+            room=room,
+            body=request.POST['body'],
+        )
+        room.participants.add(request.user)
+        return redirect('room',pk=room.id)
+
+    context = {'room': room,'room_messages':room_messages,'participants': participants}
     return render(request, 'base/room.html',context)
 
+def userProfile(request,pk):
+    user = User.objects.get(id=pk)
+    rooms= user.room_set.all()
+    room_messages = user.message_set.all().order_by('-created')
+    topics = Topic.objects.all()
+    context = {'user': user, 'rooms': rooms, 'room_messages': room_messages,'topics': topics}
+    return render(request, 'base/profile.html',context)
 
 @login_required(login_url='login')
 def createRoom(request):
@@ -108,7 +120,23 @@ def updateRoom(request, pk):
 @login_required(login_url='login')
 def deleteRoom(request, pk):
     room = Room.objects.get(id=pk)
+
+    if request.user != room.host:
+        return HttpResponse('You are not authorized')
+
     if request.method == 'POST':
         room.delete()
         return redirect('home')
     return render(request, 'base/delete.html',{'obj':room})
+
+
+@login_required(login_url='login')
+def deleteMessage(request, pk):
+    message = Message.objects.get(pk=pk)
+    if request.user != message.user:
+        return HttpResponse('You are not authorized')
+    if request.method == 'POST':
+        room_id = message.room.id
+        message.delete()
+        return redirect('room', pk=room_id)
+    return render(request, 'base/delete.html',{'obj':message})

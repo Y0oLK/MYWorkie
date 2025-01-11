@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+  <h3>Browse Topics</h3>
+  <hr>
+  <div>
+    <a href="{% url 'home' %}">ALL</a>
+    <hr>
+  </div>
+  {% for topic in topics %}
+  <div>
+    <a href="{% url 'home' %}?q={{topic.name}}">{{topic.name}}</a>
+    <hr>
+  </div>
+  {% endfor %}
+</body>
+</html>
