@@ -1,35 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    {% extends 'main.html' %}
-    {% block content %}
-    <div>
-        <form method="POST" action="">
-            {% csrf_token %}
-            <label>Username :</label>
-            <input type="text" name="username" placeholder="Enter Username"/>
+{% extends 'main.html' %}
 
-            <label>Password :</label>
-            <input type="password" name="password" placeholder="Enter Password"/>
+{% block content %}
+<main>
+  {% if page == 'login' %}
+  <!-- Login Form -->
+  <div class="container">
+    <div class="layout__box">
+      <div class="layout__boxHeader">
+        <div class="layout__boxTitle">
+          <h3>Login</h3>
+        </div>
+      </div>
+      <div class="layout__body">
+        <h2 class="auth__tagline">Find your study partner</h2>
 
-            <input type="submit" value="Login"/>
+        <form class="form" action="" method="POST">
+          {% csrf_token %}
+          <div class="form__group">
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text" placeholder="e.g. john_doe" required />
+          </div>
+          <div class="form__group">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" placeholder="********" required />
+          </div>
+          <button class="btn btn--main" type="submit">Login</button>
         </form>
+
+        <div class="auth__action">
+          <p>Don't have an account yet?</p>
+          <a href="{% url 'register' %}" class="btn btn--link">Sign Up</a>
+        </div>
+      </div>
     </div>
-    <p>haven't signed up yet ?</p>
-    <a href="{% url 'register' %}">Sign up</a>
-    <div>
-        <form method="POST" action="">
-            {% csrf_token %}
-            {{form.as_p}}
-            <input type="submit" value="Register"/>
+  </div>
+
+  {% elif page == 'register' %}
+  <!-- Register Form -->
+  <div class="container">
+    <div class="layout__box">
+      <div class="layout__boxHeader">
+        <div class="layout__boxTitle">
+          <h3>Register</h3>
+        </div>
+      </div>
+      <div class="layout__body">
+        <h2 class="auth__tagline">Find your study partner</h2>
+
+        <form class="form" action="" method="POST">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="form__group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+          </div>
+          {% endfor %}
+          <button class="btn btn--main" type="submit">Register</button>
         </form>
-        <p>Already signed up yet ?</p>
-    <a href="{% url 'login' %}">Login</a>
+
+        <div class="auth__action">
+          <p>Already have an account?</p>
+          <a href="{% url 'login' %}" class="btn btn--link">Login</a>
+        </div>
+      </div>
     </div>
-    {% endblock content %}
-</body>
-</html>
+  </div>
+  {% endif %}
+</main>
+{% endblock content %}

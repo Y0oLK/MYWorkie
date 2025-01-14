@@ -6,12 +6,13 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib.auth import authenticate,login,logout
 from django.http import HttpResponse
+
+from .forms import RoomForm,UserForm
 from .models import Room, Topic, Message
-from .forms import RoomForm
 
 
 def loginPage(request):
-    page = 'login'
+    page = 'login'  # This identifies that it's the login page
     if request.user.is_authenticated:
         return redirect('home')
 
@@ -21,34 +22,43 @@ def loginPage(request):
 
         try:
             user = User.objects.get(username=username)
-        except:
-            messages.error(request,'Username not found')
+        except User.DoesNotExist:
+            messages.error(request, 'Username not found')
+
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            login(request,user)
+            login(request, user)
             return redirect('home')
         else:
-            messages.error(request,'Invalid username or password')
+            messages.error(request, 'Invalid username or password')
 
-    context = {}
-    return render(request, 'base/login_register.html',context)
+    # Pass the 'page' variable to the template
+    context = {'page': page}
+    return render(request, 'base/login_register.html', context)
+
 
 def logoutUser(request):
     logout(request)
     return redirect('home')
 
-def registerPage(request):
 
-    form = UserCreationForm(request.POST)
+def registerPage(request):
+    page = 'register'  # This identifies that it's the register page
+    form = UserCreationForm(request.POST or None)
+
     if form.is_valid():
         user = form.save(commit=False)
         user.username = user.username.lower()
         user.save()
-        login(request,user)
+        login(request, user)
         return redirect('home')
     else:
-        messages.error(request,'An error has occurred during registration')
-    return render(request, 'base/login_register.html',{'form':form})
+        messages.error(request, 'An error occurred during registration')
+
+    # Pass the 'page' variable to the template
+    context = {'form': form, 'page': page}
+    return render(request, 'base/login_register.html', context)
+
 
 def home(request):
     q=request.GET.get('q') if request.GET.get('q')!=None else ''
@@ -56,7 +66,7 @@ def home(request):
     rooms = Room.objects.filter(Q(topic__name__contains= q) |
                                 Q(name__contains= q)  |
                                 Q(description__contains= q))
-    topics = Topic.objects.all()
+    topics = Topic.objects.all()[0:5]
     room_count = Room.objects.count()
     room_messages = Message.objects.all().filter(Q(room__topic__name__icontains= q) )
     context = {'rooms': rooms, 'topics': topics, 'room_count': room_count,'room_messages' : room_messages}
@@ -154,3 +164,22 @@ def deleteMessage(request, pk):
     return render(request, 'base/delete.html',{'obj':message})
 
 
+@login_required(login_url='login')
+def updateUser(request):
+    user = request.user
+    form = UserForm(request.POST, instance=user)
+
+    if request.method == 'POST':
+        form.save()
+        return redirect('user-profile', pk=user.id)
+    return render(request, 'base/update-user.html',{'form':form})
+
+def topicPage(request):
+    q = request.GET.get('q') if request.GET.get('q') != None else ''
+    topics = Topic.objects.filter(name__icontains=q)
+
+    return render(request, 'base/topics.html',{'topics':topics})
+
+def activityPage(request):
+    room_messages = Message.objects.all()[0:5]
+    return render(request, 'base/activity.html',{'room_messages':room_messages})
